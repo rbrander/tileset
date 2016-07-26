@@ -1,0 +1,28 @@
+{
+  "name": "tileset",
+  "version": "1.0.0",
+  "description": "Procedurally generated islands using tiles from a tileset",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "http-server src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rbrander/tileset.git"
+  },
+  "keywords": [
+    "tileset",
+    "land",
+    "water"
+  ],
+  "author": "Rob Brander",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rbrander/tileset/issues"
+  },
+  "homepage": "https://github.com/rbrander/tileset#readme",
+  "dependencies": {
+    "http-server": "^0.9.0"
+  }
+}
