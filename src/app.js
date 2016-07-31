@@ -8,17 +8,71 @@ var globals = {
   tiles: [],
   map: [],
   toggleTiles: true,
+  gridX: undefined,
+  gridY: undefined,
 };
 
-function draw() {
-  var ctx = globals.ctx;
+function clearBackground(ctx) {
   // Clear the background
   ctx.fillStyle = 'black';
   ctx.fillRect(0, 0, globals.canvas.width, globals.canvas.height);
+}
 
+function draw() {
+  var ctx = globals.ctx;
+  if (ctx) {    
+    clearBackground(ctx);
+    drawMapTiles(ctx);
+    drawMouseCursor(ctx);
+  }
+}
+
+function drawMouseCursor(ctx) {
+  if (globals.gridX && globals.gridY) {
+    var gridX = ~~globals.gridX;
+    var gridY = ~~globals.gridY;
+
+    if (globals.map.length > 0 && globals.map[gridY][gridX] === 1) {
+      var sx = gridX * globals.tileSize;
+      var sy = gridY * globals.tileSize;
+      var ex = (gridX + 1) * globals.tileSize - 1;
+      var ey = (gridY + 1) * globals.tileSize - 1;
+      var dashLength = globals.tileSize / 4;
+      
+      ctx.strokeStyle = 'lightgreen';
+      ctx.lineWidth = 2;
+    
+      ctx.beginPath();
+
+      // lower left
+      ctx.moveTo(sx, ey - dashLength);
+      ctx.lineTo(sx, ey);
+      ctx.lineTo(sx + dashLength, ey);
+
+      // upper left
+      ctx.moveTo(sx, sy + dashLength);
+      ctx.lineTo(sx, sy);
+      ctx.lineTo(sx + dashLength, sy);
+
+      // lower right
+      ctx.moveTo(ex - dashLength, ey);
+      ctx.lineTo(ex, ey);
+      ctx.lineTo(ex, ey - dashLength);
+
+      // upper right
+      ctx.moveTo(ex - dashLength, sy);
+      ctx.lineTo(ex, sy);
+      ctx.lineTo(ex, sy + dashLength);
+
+      ctx.stroke();
+    }
+  }
+}
+
+function drawMapTiles(ctx) {
   if (globals.tiles && globals.tiles.length > 0 && globals.tiles[0].length > 0) {
-    var waterTile = globals.tiles[0][0];
-    var landTile = globals.tiles[4][0];
+    var waterTile = globals.waterTile;
+    var landTile = globals.landTile;
 
     var waterEdge = {
       Bottom: globals.tiles[5][2],
@@ -232,9 +286,28 @@ function init() {
   globals.canvas.height = window.innerHeight;
   globals.ctx = globals.canvas.getContext('2d');
 
+  window.addEventListener('resize', function() {
+    globals.canvas.width = window.innerWidth;
+    globals.canvas.height = window.innerHeight;
+  });
+
   window.addEventListener('click', function() {
     globals.toggleTiles = !globals.toggleTiles;
-  })
+  });
+
+  window.addEventListener('mousemove', function(e) {
+    var mouseX = e.clientX
+    var mouseY = e.clientY;
+    globals.gridX = mouseX / globals.tileSize;
+    globals.gridY = mouseY / globals.tileSize;
+  });
+
+  window.addEventListener('mouseout', function() {
+    globals.gridX = globals.gridY = undefined;
+  });
+
+  window.addEventListener('keyup', function(e) {
+  });
 
   globals.map = generateMap();
   globals.mapHeight = globals.map.length;
@@ -243,9 +316,11 @@ function init() {
   // load tiles
   // Tiles taken from http://opengameart.org/content/top-down-grass-beach-and-water-tileset
   image('./tileset_32x32.png')
-    .then(function(img) {      
+    .then(function(img) {
       globals.tileImg = img;
       globals.tiles = processTiles(img);
+      globals.waterTile = globals.tiles[0][0];
+      globals.landTile = globals.tiles[4][0];
       return img;
     })
     .catch(console.error);
@@ -268,6 +343,21 @@ function generateMap() {
       row[x] = (Math.random() < 0.4 ? 1 : 0);
     }
     minimap.push(row);
+  }
+
+  // remove "small lakes" (water tile surrounded by land)
+  globals.beforeLakes = minimap.map(arr => arr.slice());
+  for (var y = 1; y < halfMaxY-1; y++) {
+    for (var x = 1; x < halfMaxX-1; x++) {
+      var isLandAbove = (minimap[y-1][x] === 1);
+      var isLandBelow = (minimap[y+1][x] === 1);
+      var isLandRight = (minimap[y][x+1] === 1);
+      var isLandLeft = (minimap[y][x-1] === 1);
+      var isCurrWater = (minimap[y][x] === 0);
+      if (isLandLeft && isLandRight && isLandBelow && isLandAbove && isCurrWater) {
+        minimap[y][x] = 1;
+      }
+    }
   }
 
   // Scale the map up
@@ -305,7 +395,7 @@ function processTiles(img) {
     }
     tiles.push(row);
   }
-  
+
   return tiles;
 }
 
